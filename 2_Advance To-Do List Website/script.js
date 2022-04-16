@@ -21,42 +21,42 @@ let ticketArr = []// for storing all tickets as object
 
 
 // localStorage get all tickets 
-if (localStorage.getItem('tickets')){
-    ticketArr=JSON.parse(localStorage.getItem('tickets'))
-    ticketArr.forEach(function(ticketObj){
-        createTicket(ticketObj.ticketColor,ticketObj.ticketTask,ticketObj.ticketId)
+if (localStorage.getItem('tickets')) {
+    ticketArr = JSON.parse(localStorage.getItem('tickets'))
+    ticketArr.forEach(function (ticketObj) {
+        createTicket(ticketObj.ticketColor, ticketObj.ticketTask, ticketObj.ticketId)
     })
 }
 
 
 // filter tickets wrt colors 
-for (let i=0;i<toolBoxColors.length;i++){
-    toolBoxColors[i].addEventListener('click',function(e){
-        let currentToolBoxColor=toolBoxColors[i].classList[1]
-        let filteredTickets=ticketArr.filter(function(ticketObj){
-            return currentToolBoxColor===ticketObj.ticketColor
+for (let i = 0; i < toolBoxColors.length; i++) {
+    toolBoxColors[i].addEventListener('click', function (e) {
+        let currentToolBoxColor = toolBoxColors[i].classList[1]
+        let filteredTickets = ticketArr.filter(function (ticketObj) {
+            return currentToolBoxColor === ticketObj.ticketColor
         })
         // console.log(filteredTickets)
         // remove previous tickets 
-        let allTickets= document.querySelectorAll('.ticket-cont')
+        let allTickets = document.querySelectorAll('.ticket-cont')
 
-        for(let i=0;i<allTickets.length;i++){
+        for (let i = 0; i < allTickets.length; i++) {
             allTickets[i].remove()
         }
         //add filtered tickets
-        filteredTickets.forEach(function(filteredObj){
-            createTicket(filteredObj.ticketColor,filteredObj.ticketTask,filteredObj.ticketId)
+        filteredTickets.forEach(function (filteredObj) {
+            createTicket(filteredObj.ticketColor, filteredObj.ticketTask, filteredObj.ticketId)
         })
 
     })
-    toolBoxColors[i].addEventListener('dblclick', function(e){
-        let allTickets= document.querySelectorAll('.ticket-cont')
+    toolBoxColors[i].addEventListener('dblclick', function (e) {
+        let allTickets = document.querySelectorAll('.ticket-cont')
 
-        for(let i=0;i<allTickets.length;i++){
+        for (let i = 0; i < allTickets.length; i++) {
             allTickets[i].remove()
         }
-        ticketArr.forEach(function(ticketObj){
-            createTicket(ticketObj.ticketColor,ticketObj.ticketTask,ticketObj.ticketId)
+        ticketArr.forEach(function (ticketObj) {
+            createTicket(ticketObj.ticketColor, ticketObj.ticketTask, ticketObj.ticketId)
         })
     })
 }
@@ -105,7 +105,7 @@ modalCont.addEventListener('keydown', function (e) {
 
 
 function createTicket(ticketColor, ticketTask, ticketId) {
-    let id=ticketId || shortid()
+    let id = ticketId || shortid()
     let ticketCont = document.createElement('div')
     ticketCont.setAttribute('class', 'ticket-cont')
     ticketCont.innerHTML = `<div class="ticket-color ${ticketColor}"></div>
@@ -116,22 +116,22 @@ function createTicket(ticketColor, ticketTask, ticketId) {
     </div>
                             `
     mainCont.appendChild(ticketCont)
-    handleRemoval(ticketCont)
-    handleLock(ticketCont)
+    handleRemoval(ticketCont, id)
+    handleLock(ticketCont,id)
 
-    handleColor(ticketCont)//need to change this
+    handleColor(ticketCont,id)//need to change this
 
 
 
-if(!ticketId){
-    ticketArr.push({
-        ticketColor,
-        ticketTask,
-        ticketId:id
-    })
-    localStorage.setItem('tickets',JSON.stringify(ticketArr))//*********** LOCAL STORAGE*********** */
+    if (!ticketId) {
+        ticketArr.push({
+            ticketColor,
+            ticketTask,
+            ticketId: id
+        })
+        localStorage.setItem('tickets', JSON.stringify(ticketArr))//*********** LOCAL STORAGE*********** */
 
-}
+    }
 }
 
 
@@ -147,23 +147,32 @@ removeBtn.addEventListener('click', function (e) {
 
 })
 // remove tickets function 
-function handleRemoval(ticket) {
+function handleRemoval(ticket, id) {
     ticket.addEventListener('click', function () {
-        if (removeFlag == true) {
-            ticket.remove()
-        }
+        if (!removeFlag) return
+        let idx = getTicketIdx(id)
+        console.log(idx)
+
+        // local storage rempval of ticket
+        ticketArr.splice(idx, 1)// basically worked as removal
+        let stringTicketArray = JSON.stringify(ticketArr)
+        localStorage.setItem('tickets', stringTicketArray)
+        ticket.remove() //ui removal
+
+
     })
 }
 
 
 // lock and unlock tickets
-function handleLock(ticket) {
+function handleLock(ticket, id) {
     let ticketLockElement = ticket.querySelector('.ticket-lock')
 
     let ticketLock = ticketLockElement.children[0]
     let ticketTaskArea = ticket.querySelector('.task-area')
 
     ticketLock.addEventListener('click', function (e) {
+        let ticketIdx=getTicketIdx(id)
         if (ticketLock.classList.contains(lockClass)) {
             ticketLock.classList.remove(lockClass)
             ticketLock.classList.add(unlockClass)
@@ -177,16 +186,22 @@ function handleLock(ticket) {
             ticketTaskArea.setAttribute('contenteditable', 'false')
 
         }
+        ticketArr[ticketIdx].ticketTask=ticketTaskArea.innerText
+        localStorage.setItem('tickets',JSON.stringify(ticketArr))
 
     })
 }
 
 
-function handleColor(ticket) {
+function handleColor(ticket,id) {
     let ticketColorStrip = ticket.querySelector('.ticket-color')
 
     ticketColorStrip.addEventListener('click', function (e) {
         let currentTicketColor = ticketColorStrip.classList[1]
+        
+        let ticketIdx= getTicketIdx(id)
+        console.log(ticketIdx)
+
         let currentTicketColorIndex = colors.findIndex(function (color) {
             return currentTicketColor === color
         })
@@ -197,5 +212,17 @@ function handleColor(ticket) {
         ticketColorStrip.classList.add(newTicketColor)
 
 
+        //modify ticket color in local storage
+        ticketArr[ticketIdx].ticketColor=newTicketColor
+        localStorage.setItem('tickets',JSON.stringify(ticketArr))
+
+
     })
+}
+function getTicketIdx(id) {
+    let ticketIdx = ticketArr.findIndex(function(ticketObj){
+        return ticketObj.ticketId === id
+}) 
+
+return ticketIdx
 }
